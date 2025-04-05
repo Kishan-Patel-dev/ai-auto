@@ -1,0 +1,41 @@
+{
+    "id": "cba8ef99-20cf-4db6-aa5d-aca43f2a5697",
+    "version": "0.0.1",
+    "requiredApiVersion": "^1.44.0",
+    "iconFile": "icon.png",
+    "author": {
+        "name": "Kishan Patel",
+        "homepage": "https://github.com/Kishan-Patel-dev",
+        "support": "https://github.com/Kishan-Patel-dev"
+    },
+    "name": "AI Workflow Automation",
+    "nameSlug": "ai-workflow-automation",
+    "classFile": "AiWorkflowApp.ts",
+    "description": "AI Chat Workflow Automation App with Multi-Step Reasoning",
+    "permissions": [
+        {
+            "name": "message.read"
+        },
+        {
+            "name": "message.write"
+        },
+        {
+            "name": "room.read"
+        },
+        {
+            "name": "user.read"
+        },
+        {
+            "name": "slashcommand"
+        },
+        {
+            "name": "networking"
+        },
+        {
+            "name": "persistence"
+        }
+    ],
+    "implements": [
+        "IPostMessageSent"
+    ]
+}
