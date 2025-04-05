@@ -26,3 +26,7 @@ out/
 Network Trash Folder
 Temporary Items
 .apdisk
+
+
+# Rocket.Chat Apps
+.rcappsconfig
