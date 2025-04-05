@@ -109,47 +109,62 @@ The app uses a sophisticated prompt system for natural language processing and w
 
 ### Core Prompts
 ```typescript
-const PROMPTS = {
-    // Main workflow automation instruction
+export const PROMPTS = {
+    // Main instruction for workflow automation.
     workflowInstruction: `
-        Parse English commands into multi-step workflows with:
-        1. Trigger: channel/user/content conditions
-        2. Process: 2+ step reasoning validation
-        3. Response: messaging operations
+  You are an automation assistant for Rocket.Chat. 
+  When provided with a command in simple English, parse and generate a detailed multi-step workflow.
+  Your workflow should include:
+  1. A trigger: specifying the channel(s), user(s), or message content conditions.
+  2. A process: outlining the reasoning steps required (at least two steps) to validate the command.
+  3. A response: defining the messaging operation (e.g., DM, deletion) to be executed.
+  Ensure safety mechanisms are in place to prevent accidental permanent changes or errors.
+  Examples:
+  - "whenever @sing.li posts any welcome messages in #gsoc2025, immediately DM them with a thank-you note"
+  - "whenever a message is posted that contains a four letter word beginning with letter F, delete that message immediately"
+  - "if my Alexa messages me asking where I am, DM her sorry I will be late"
     `,
-
-    // Trigger extraction from commands
+  
+    // Extract the trigger details from the user command.
     triggerExtraction: `
-        Extract:
-        - Target channels/conversations
-        - Involved users/roles
-        - Message conditions/patterns
+  Identify and extract the trigger details:
+  - Which channel(s) or conversation(s) are being monitored?
+  - Which user(s) or role(s) are involved (if any)?
+  - What specific message conditions (keywords, patterns, etc.) need to be met?
+  Provide a structured description of these trigger conditions.
     `,
-
-    // Multi-step reasoning process
+  
+    // Define the multi-step reasoning process.
     processReasoning: `
-        Define 2+ step reasoning:
-        1. Validate trigger conditions
-        2. Determine appropriate actions
-        Include safety checks
+  Outline the multi-step reasoning process required to transform the trigger into an actionable workflow.
+  Include at least two distinct reasoning steps such as:
+  1. Validating the trigger conditions (e.g., correct user, channel, or message pattern).
+  2. Determining the appropriate messaging operation and any intermediate actions.
+  Incorporate safety checks to ensure that the actions will not lead to unintended permanent state changes.
     `,
-
-    // Response action generation
+  
+    // Generate the response actions based on the reasoning.
     responseCreation: `
-        Generate messaging actions:
-        - DM sending
-        - Message deletion
-        - Channel notifications
+  Based on the validated trigger and reasoning steps, generate the required messaging actions.
+  Detail the operations, such as:
+  - Sending a direct message (DM) with a specified note.
+  - Deleting a message containing prohibited content.
+  - Any other messaging operations as described by the command.
+  Ensure that the response is clear, concise, and executable within the Rocket.Chat environment.
     `,
-
-    // Safety validation
+  
+    // Safety mechanism prompt to validate the final workflow.
     safetyCheck: `
-        Verify:
-        - No unintended operations
-        - Rollback mechanisms
-        - State preservation
-    `
-}
+  Perform a final safety check on the generated workflow.
+  Verify that:
+  - No unintended operations are present.
+  - There are rollback or confirmation mechanisms where necessary.
+  - The actions will not permanently alter critical system states.
+  If any potential issues are detected, prompt for additional confirmation before execution.
+    `,
+  };
+  
+export default PROMPTS;
 ```
 
 ### Example Workflows
