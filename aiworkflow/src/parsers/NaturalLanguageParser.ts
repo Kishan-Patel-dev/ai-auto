@@ -139,14 +139,4 @@ export class NaturalLanguageParser {
 
         return null;
     }
-
-    public static getExampleCommands(): string[] {
-        return [
-            'when someone says "hello" in #general send "Hello there! 👋" to the channel',
-            'when @john says "help" then send "Help is on the way!" to #support',
-            'when someone says "urgent" in #support notify @team-lead',
-            'when @alice is mentioned then send "Alice will get back to you soon" to the channel',
-            'when someone says "deploy" in #dev send "Starting deployment..." to #announcements'
-        ];
-    }
 } 

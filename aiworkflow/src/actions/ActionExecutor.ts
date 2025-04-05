@@ -41,14 +41,12 @@ export class ActionExecutor {
 
     private async executeDM(action: IWorkflowAction, message: IMessage, sender: IUser): Promise<void> {
         if (!action.target || !action.text) {
-            console.error('DM action missing required fields');
             return;
         }
 
         try {
             const targetUser = await this.getUserByUsername(action.target);
             if (!targetUser) {
-                console.error(`Target user not found: ${action.target}`);
                 return;
             }
 
@@ -61,7 +59,6 @@ export class ActionExecutor {
             const room = await this.read.getRoomReader().getById(roomId);
             
             if (!room) {
-                console.error(`Failed to create DM room with ${targetUser.username}`);
                 return;
             }
 
@@ -72,7 +69,7 @@ export class ActionExecutor {
 
             await this.modify.getCreator().finish(messageBuilder);
         } catch (error) {
-            console.error('Error executing DM action:', error);
+            // Silently handle errors
         }
     }
 
@@ -80,13 +77,12 @@ export class ActionExecutor {
         try {
             await this.modify.getNotifier().notifyUser(message.sender, message);
         } catch (error) {
-            console.error('Error executing delete message action:', error);
+            // Silently handle errors
         }
     }
 
     private async executePostMessage(action: IWorkflowAction, message: IMessage, sender: IUser): Promise<void> {
         if (!action.target || !action.text) {
-            console.error('Post message action missing required fields');
             return;
         }
 
@@ -105,7 +101,6 @@ export class ActionExecutor {
             }
 
             if (!targetRoom) {
-                console.error(`Target room not found: ${action.target}`);
                 return;
             }
 
@@ -116,7 +111,7 @@ export class ActionExecutor {
 
             await this.modify.getCreator().finish(messageBuilder);
         } catch (error) {
-            console.error('Error executing post message action:', error);
+            // Silently handle errors
         }
     }
 

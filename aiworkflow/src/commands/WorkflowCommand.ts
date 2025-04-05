@@ -339,11 +339,11 @@ export class WorkflowCommand implements ISlashCommand {
         }
 
         if (!command) {
-            const examples = NaturalLanguageParser.getExampleCommands();
-            const messageBuilder = modify.getCreator().startMessage()
-                .setRoom(context.getRoom())
-                .setText('Here are some example commands you can use:\n' + examples.map(ex => `• \`${ex}\``).join('\n'));
-            await modify.getCreator().finish(messageBuilder);
+            await this.sendMessage(
+                context,
+                modify,
+                'Please provide a command.'
+            );
             return;
         }
 
@@ -351,12 +351,11 @@ export class WorkflowCommand implements ISlashCommand {
         const steps = parser.parseCommand(command);
 
         if (steps.length === 0) {
-            const examples = NaturalLanguageParser.getExampleCommands();
-            const messageBuilder = modify.getCreator().startMessage()
-                .setRoom(context.getRoom())
-                .setText('I couldn\'t understand that command. Try using one of these formats:\n' + 
-                    examples.map(ex => `• \`${ex}\``).join('\n'));
-            await modify.getCreator().finish(messageBuilder);
+            await this.sendMessage(
+                context,
+                modify,
+                'I couldn\'t understand that command. Please try again.'
+            );
             return;
         }
 
@@ -406,10 +405,22 @@ export class WorkflowCommand implements ISlashCommand {
             .setRoom(context.getRoom())
             .setBlocks(block);
 
-        await modify.getCreator().finish(messageBuilder);
+        await modify.getNotifier().notifyUser(sender, messageBuilder.getMessage());
     }
 
     private async showHelp(context: SlashCommandContext, modify: IModify): Promise<void> {
+        const sender = context.getSender();
+        const isAdmin = sender.roles?.includes('admin') || sender.type === UserType.BOT;
+
+        if (!isAdmin) {
+            await this.sendMessage(
+                context,
+                modify,
+                'Only administrators can view workflow commands.'
+            );
+            return;
+        }
+
         const text = [
             '🤖 **AI Workflow Bot Commands**',
             '',
@@ -421,27 +432,6 @@ export class WorkflowCommand implements ISlashCommand {
             '• `/workflow disable [workflow_id]` - Disable a specific workflow',
             '• `/workflow english "<command>"` - Create workflow using natural language',
             '',
-            '💡 **Usage Examples**',
-            '1. Create workflow with technical syntax:',
-            '```',
-            '/workflow create @user #room contains=hello action=post:#general="Hello there!"',
-            '/workflow create contains=help action=dm:@support="New help request"',
-            '```',
-            '',
-            '2. Create workflow with natural language:',
-            '```',
-            '/workflow english "when someone says hello in #general send Hello there! to the channel"',
-            '/workflow english "when @john mentions me send him a DM saying I will help you"',
-            '```',
-            '',
-            '3. Manage workflows:',
-            '```',
-            '/workflow list',
-            '/workflow enable ID',
-            '/workflow disable ID',
-            '/workflow delete ID',
-            '```',
-            '',
             '⚠️ Note: Workflow management commands are restricted to administrators only.'
         ].join('\n');
 
@@ -449,23 +439,31 @@ export class WorkflowCommand implements ISlashCommand {
     }
 
     private async sendUsage(context: SlashCommandContext, modify: IModify, sender: any, room: any): Promise<void> {
+        const isAdmin = sender.roles?.includes('admin') || sender.type === UserType.BOT;
+        
+        if (!isAdmin) {
+            await this.sendMessage(
+                context,
+                modify,
+                'Only administrators can view workflow commands.'
+            );
+            return;
+        }
+
         const usage = [
-            'Here are some example commands you can use:',
+            '📋 **Available Workflow Commands**',
             '',
-            '1. Create a simple workflow:',
-            '`/workflow create contains=hello action=post:channel="Hello there!"`',
+            '1. Create Workflows:',
+            '`/workflow create [conditions] [actions]` - Create a workflow with specific triggers and actions',
+            '`/workflow english "<command>"` - Create workflow using natural language',
             '',
-            '2. Create a workflow for a specific user:',
-            '`/workflow create @user contains=help action=dm:@support="New help request"`',
-            '',
-            '3. Create a workflow using natural language:',
-            '`/workflow english "when someone says hello in #general send Hello there! to the channel"`',
-            '',
-            '4. Manage workflows:',
+            '2. Manage Workflows:',
             '`/workflow list` - View all workflows',
             '`/workflow delete [workflow_id]` - Delete a workflow',
             '`/workflow enable [workflow_id]` - Enable a workflow',
-            '`/workflow disable [workflow_id]` - Disable a workflow'
+            '`/workflow disable [workflow_id]` - Disable a workflow',
+            '',
+            'For detailed command syntax and options, use `/workflow help`'
         ].join('\n');
 
         await this.sendMessage(context, modify, usage);
@@ -484,8 +482,8 @@ export class WorkflowCommand implements ISlashCommand {
             .setRoom(room)
             .setText(message)
             .setSender(sender)
-            .setUsernameAlias('Workflow Bot')
-            .setEmojiAvatar(':gear:');
+            .setUsernameAlias('ai-workflow-automation.bot')
+            .setEmojiAvatar(':robot:');
 
         // Create the message
         await modify.getNotifier().notifyUser(sender, messageBuilder.getMessage());

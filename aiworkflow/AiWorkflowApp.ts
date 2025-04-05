@@ -54,7 +54,8 @@ export class AiWorkflowApp extends App implements IPostMessageSent {
         modify: IModify
     ): Promise<void> {
         // Skip messages from the app itself to prevent loops
-        if (message.sender.username === 'ai.workflow.bot') {
+        const appUser = await read.getUserReader().getAppUser();
+        if (!appUser || message.sender.id === appUser.id) {
             return;
         }
 
@@ -78,10 +79,9 @@ export class AiWorkflowApp extends App implements IPostMessageSent {
         
         for (const workflow of matchingWorkflows) {
             try {
-                console.log(`Executing workflow ${workflow.id} for message: ${text}`);
                 await actionExecutor.executeActions(workflow.actions, message, sender, room);
             } catch (error) {
-                console.error(`Error executing workflow ${workflow.id}: ${error}`);
+                this.getLogger().error(`Error executing workflow ${workflow.id}: ${error}`);
             }
         }
     }
@@ -92,17 +92,14 @@ export class AiWorkflowApp extends App implements IPostMessageSent {
 
         for (const workflow of workflows) {
             if (!workflow.enabled) {
-                console.log(`Workflow ${workflow.id} is disabled`);
                 continue;
             }
 
             if (workflow.trigger.type !== WorkflowTriggerType.Message) {
-                console.log(`Workflow ${workflow.id} is not a message trigger`);
                 continue;
             }
 
             if (this.matchesTrigger(workflow.trigger, message, sender, room)) {
-                console.log(`Workflow ${workflow.id} matches trigger`);
                 matchingWorkflows.push(workflow);
             }
         }
@@ -112,54 +109,63 @@ export class AiWorkflowApp extends App implements IPostMessageSent {
 
     private matchesTrigger(trigger: IWorkflowTrigger, message: IMessage, sender: IUser, room: IRoom): boolean {
         const text = message.text || '';
+        let hasAnyCondition = false;
 
         // Check room if specified
         if (trigger.room) {
+            hasAnyCondition = true;
             const roomName = room.slugifiedName || room.displayName || '';
             const triggerRoom = trigger.room.startsWith('#') ? trigger.room.substring(1) : trigger.room;
             
             if (room.id !== triggerRoom && roomName !== triggerRoom) {
-                console.log(`Room mismatch: ${roomName} != ${triggerRoom}`);
                 return false;
             }
         }
 
         // Check user if specified
         if (trigger.user) {
+            hasAnyCondition = true;
             const username = sender.username;
             const triggerUser = trigger.user.startsWith('@') ? trigger.user.substring(1) : trigger.user;
             
             if (sender.id !== triggerUser && username !== triggerUser) {
-                console.log(`User mismatch: ${username} != ${triggerUser}`);
                 return false;
             }
         }
 
         // Check message content conditions
-        if (trigger.contains && !text.includes(trigger.contains)) {
-            console.log(`Text does not contain: ${trigger.contains}`);
-            return false;
-        }
-
-        if (trigger.startsWith && !text.startsWith(trigger.startsWith)) {
-            console.log(`Text does not start with: ${trigger.startsWith}`);
-            return false;
-        }
-
-        if (trigger.regex) {
-            try {
-                const regex = new RegExp(trigger.regex);
-                if (!regex.test(text)) {
-                    console.log(`Text does not match regex: ${trigger.regex}`);
-                    return false;
-                }
-            } catch (error) {
-                console.error(`Invalid regex in workflow trigger: ${trigger.regex}`);
+        if (trigger.contains) {
+            hasAnyCondition = true;
+            if (!text.toLowerCase().includes(trigger.contains.toLowerCase())) {
                 return false;
             }
         }
 
-        console.log(`All trigger conditions matched`);
+        if (trigger.startsWith) {
+            hasAnyCondition = true;
+            if (!text.toLowerCase().startsWith(trigger.startsWith.toLowerCase())) {
+                return false;
+            }
+        }
+
+        if (trigger.regex) {
+            hasAnyCondition = true;
+            try {
+                const regex = new RegExp(trigger.regex, 'i');
+                if (!regex.test(text)) {
+                    return false;
+                }
+            } catch (error) {
+                this.getLogger().error(`Invalid regex in workflow trigger: ${trigger.regex}`);
+                return false;
+            }
+        }
+
+        // If no conditions were specified, don't match
+        if (!hasAnyCondition) {
+            return false;
+        }
+
         return true;
     }
 }
