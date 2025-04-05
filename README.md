@@ -207,14 +207,6 @@ aiworkflow/
 - @rocket.chat/icons: ^0.38.0
 - TypeScript: ^5.6.2
 
-### Required Permissions
-- message.read
-- message.write
-- room.read
-- user.read
-- slashcommand
-- networking
-- persistence
 
 ## 🎯 Example Use Cases
 
@@ -255,7 +247,7 @@ npm install
 3. Configure:
 ```bash
 cp .rcappsconfig.example .rcappsconfig
-# Edit .rcappsconfig with your server details
+# Edit .rcappsconfig with your server details username & password
 ```
 
 4. Deploy:

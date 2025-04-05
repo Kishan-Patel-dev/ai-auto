@@ -207,14 +207,6 @@ aiworkflow/
 - @rocket.chat/icons: ^0.38.0
 - TypeScript: ^5.6.2
 
-### Required Permissions
-- message.read
-- message.write
-- room.read
-- user.read
-- slashcommand
-- networking
-- persistence
 
 ## 🎯 Example Use Cases
 
@@ -255,7 +247,7 @@ npm install
 3. Configure:
 ```bash
 cp .rcappsconfig.example .rcappsconfig
-# Edit .rcappsconfig with your server details
+# Edit .rcappsconfig with your server details username & password
 ```
 
 4. Deploy:
@@ -313,3 +305,10 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - GSoC 2025 program
 - Rocket.Chat community
 - Special Thanks to Project mentor Hardik Bhatia 
+
+
+## Connect with Me
+- [Whatsapp](https://wa.me/918320433926)
+- [X](https://x.com/KishanPatel_dev)
+- [Linkedin](https://www.linkedin.com/in/kishan-patel-dev/)
+- [Gmail](kishan.patel.tech.dev@gmail.com)
