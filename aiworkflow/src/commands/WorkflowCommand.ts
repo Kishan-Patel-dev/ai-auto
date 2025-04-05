@@ -15,6 +15,7 @@ import { NaturalLanguageParser } from '../parsers/NaturalLanguageParser';
 import { IBlock, ISectionBlock, IActionsBlock, IButtonElement } from '@rocket.chat/apps-engine/definition/uikit';
 import { BlockBuilder } from '@rocket.chat/apps-engine/definition/uikit';
 import { BlockType, BlockElementType, TextObjectType, ButtonStyle } from '@rocket.chat/apps-engine/definition/uikit';
+import { UserType } from '@rocket.chat/apps-engine/definition/users';
 
 export class WorkflowCommand implements ISlashCommand {
     public command = 'workflow';
@@ -73,6 +74,18 @@ export class WorkflowCommand implements ISlashCommand {
     ): Promise<void> {
         const sender = context.getSender();
         const room = context.getRoom();
+
+        // Check if user is admin
+        const isAdmin = sender.roles?.includes('admin') || sender.type === UserType.BOT;
+        
+        if (!isAdmin) {
+            await this.sendMessage(
+                context,
+                modify,
+                '❌ Only administrators can create workflows.'
+            );
+            return;
+        }
 
         if (args.length === 0) {
             await this.sendUsage(context, modify, sender, room);
@@ -140,6 +153,20 @@ export class WorkflowCommand implements ISlashCommand {
         modify: IModify,
         persistence: IPersistence
     ): Promise<void> {
+        const sender = context.getSender();
+        
+        // Check if user is admin
+        const isAdmin = sender.roles?.includes('admin') || sender.type === UserType.BOT;
+        
+        if (!isAdmin) {
+            await this.sendMessage(
+                context,
+                modify,
+                '❌ Only administrators can view workflows.'
+            );
+            return;
+        }
+
         const workflowStorage = new WorkflowStorage(persistence, read.getPersistenceReader());
         const workflows = await workflowStorage.getAll();
 
@@ -148,12 +175,24 @@ export class WorkflowCommand implements ISlashCommand {
             return;
         }
 
-        let message = 'Workflows:\n';
+        let message = '🔒 *Workflows (Admin View)*:\n\n';
         for (const workflow of workflows) {
-            message += `ID: ${workflow.id}\n`;
-            message += `Status: ${workflow.enabled ? 'Enabled' : 'Disabled'}\n`;
-            message += `Trigger: ${JSON.stringify(workflow.trigger)}\n`;
-            message += `Actions: ${JSON.stringify(workflow.actions)}\n\n`;
+            message += `📋 ID: ${workflow.id}\n`;
+            message += `📍 Status: ${workflow.enabled ? '✅ Enabled' : '❌ Disabled'}\n`;
+            message += `🎯 Trigger: When someone`;
+            if (workflow.trigger.user) message += ` (@${workflow.trigger.user})`;
+            if (workflow.trigger.room) message += ` in ${workflow.trigger.room}`;
+            if (workflow.trigger.contains) message += ` says "${workflow.trigger.contains}"`;
+            message += '\n';
+            message += `🎬 Actions:\n`;
+            workflow.actions.forEach((action, index) => {
+                message += `  ${index + 1}. `;
+                if (action.type === 'dm') message += `Send DM to ${action.target}: "${action.text}"`;
+                if (action.type === 'post') message += `Send message to ${action.target}: "${action.text}"`;
+                if (action.type === 'delete') message += `Delete message`;
+                message += '\n';
+            });
+            message += '\n';
         }
 
         await this.sendMessage(context, modify, message);
@@ -166,6 +205,20 @@ export class WorkflowCommand implements ISlashCommand {
         modify: IModify,
         persistence: IPersistence
     ): Promise<void> {
+        const sender = context.getSender();
+
+        // Check if user is admin
+        const isAdmin = sender.roles?.includes('admin') || sender.type === UserType.BOT;
+        
+        if (!isAdmin) {
+            await this.sendMessage(
+                context,
+                modify,
+                '❌ Only administrators can delete workflows.'
+            );
+            return;
+        }
+
         if (args.length === 0) {
             await this.sendUsage(context, modify, context.getSender(), context.getRoom());
             return;
@@ -192,6 +245,20 @@ export class WorkflowCommand implements ISlashCommand {
         persistence: IPersistence,
         enabled: boolean
     ): Promise<void> {
+        const sender = context.getSender();
+
+        // Check if user is admin
+        const isAdmin = sender.roles?.includes('admin') || sender.type === UserType.BOT;
+        
+        if (!isAdmin) {
+            await this.sendMessage(
+                context,
+                modify,
+                `❌ Only administrators can ${enabled ? 'enable' : 'disable'} workflows.`
+            );
+            return;
+        }
+
         if (args.length === 0) {
             await this.sendUsage(context, modify, context.getSender(), context.getRoom());
             return;
@@ -257,11 +324,25 @@ export class WorkflowCommand implements ISlashCommand {
         modify: IModify,
         persistence: IPersistence
     ): Promise<void> {
+        const sender = context.getSender();
+
+        // Check if user is admin
+        const isAdmin = sender.roles?.includes('admin') || sender.type === UserType.BOT;
+        
+        if (!isAdmin) {
+            await this.sendMessage(
+                context,
+                modify,
+                'Only administrators can create workflows using natural language.'
+            );
+            return;
+        }
+
         if (!command) {
             const examples = NaturalLanguageParser.getExampleCommands();
             const messageBuilder = modify.getCreator().startMessage()
                 .setRoom(context.getRoom())
-                .setText('Please provide a natural language command. Examples:\n' + examples.map(ex => `• \`${ex}\``).join('\n'));
+                .setText('Here are some example commands you can use:\n' + examples.map(ex => `• \`${ex}\``).join('\n'));
             await modify.getCreator().finish(messageBuilder);
             return;
         }
@@ -270,9 +351,11 @@ export class WorkflowCommand implements ISlashCommand {
         const steps = parser.parseCommand(command);
 
         if (steps.length === 0) {
+            const examples = NaturalLanguageParser.getExampleCommands();
             const messageBuilder = modify.getCreator().startMessage()
                 .setRoom(context.getRoom())
-                .setText('❌ Could not parse the command. Please check the syntax and try again.');
+                .setText('I couldn\'t understand that command. Try using one of these formats:\n' + 
+                    examples.map(ex => `• \`${ex}\``).join('\n'));
             await modify.getCreator().finish(messageBuilder);
             return;
         }
@@ -327,43 +410,84 @@ export class WorkflowCommand implements ISlashCommand {
     }
 
     private async showHelp(context: SlashCommandContext, modify: IModify): Promise<void> {
-        const examples = NaturalLanguageParser.getExampleCommands();
         const text = [
-            '**Available Commands**',
-            '• `/workflow english "<natural language command>"` - Create a workflow using natural language',
+            '🤖 **AI Workflow Bot Commands**',
             '',
-            '**Example Commands**',
-            ...examples.map(ex => `• \`/workflow english "${ex}"\``)
+            '📋 **Core Commands**',
+            '• `/workflow list` - View all existing workflows',
+            '• `/workflow create` - Create a new workflow using technical syntax',
+            '• `/workflow delete [workflow_id]` - Delete a specific workflow',
+            '• `/workflow enable [workflow_id]` - Enable a specific workflow',
+            '• `/workflow disable [workflow_id]` - Disable a specific workflow',
+            '• `/workflow english "<command>"` - Create workflow using natural language',
+            '',
+            '💡 **Usage Examples**',
+            '1. Create workflow with technical syntax:',
+            '```',
+            '/workflow create @user #room contains=hello action=post:#general="Hello there!"',
+            '/workflow create contains=help action=dm:@support="New help request"',
+            '```',
+            '',
+            '2. Create workflow with natural language:',
+            '```',
+            '/workflow english "when someone says hello in #general send Hello there! to the channel"',
+            '/workflow english "when @john mentions me send him a DM saying I will help you"',
+            '```',
+            '',
+            '3. Manage workflows:',
+            '```',
+            '/workflow list',
+            '/workflow enable ID',
+            '/workflow disable ID',
+            '/workflow delete ID',
+            '```',
+            '',
+            '⚠️ Note: Workflow management commands are restricted to administrators only.'
         ].join('\n');
 
-        const messageBuilder = modify.getCreator().startMessage()
-            .setRoom(context.getRoom())
-            .setText(text);
-
-        await modify.getCreator().finish(messageBuilder);
+        await this.sendMessage(context, modify, text);
     }
 
     private async sendUsage(context: SlashCommandContext, modify: IModify, sender: any, room: any): Promise<void> {
         const usage = [
-            'Usage:',
-            '`/workflow create @user #room contains=text startsWith=text regex=pattern action=dm:@user="message"`',
-            '`/workflow create action=delete`',
-            '`/workflow create action=post:#room="message"`',
-            '`/workflow english "<natural language command>"`',
-            '`/workflow list`',
-            '`/workflow delete [workflow_id]`',
-            '`/workflow enable [workflow_id]`',
-            '`/workflow disable [workflow_id]`'
+            'Here are some example commands you can use:',
+            '',
+            '1. Create a simple workflow:',
+            '`/workflow create contains=hello action=post:channel="Hello there!"`',
+            '',
+            '2. Create a workflow for a specific user:',
+            '`/workflow create @user contains=help action=dm:@support="New help request"`',
+            '',
+            '3. Create a workflow using natural language:',
+            '`/workflow english "when someone says hello in #general send Hello there! to the channel"`',
+            '',
+            '4. Manage workflows:',
+            '`/workflow list` - View all workflows',
+            '`/workflow delete [workflow_id]` - Delete a workflow',
+            '`/workflow enable [workflow_id]` - Enable a workflow',
+            '`/workflow disable [workflow_id]` - Disable a workflow'
         ].join('\n');
 
         await this.sendMessage(context, modify, usage);
     }
 
-    private async sendMessage(context: SlashCommandContext, modify: IModify, message: string): Promise<void> {
-        const messageBuilder = modify.getCreator().startMessage()
-            .setRoom(context.getRoom())
-            .setText(message);
+    private async sendMessage(
+        context: SlashCommandContext,
+        modify: IModify,
+        message: string
+    ): Promise<void> {
+        const sender = context.getSender();
+        const room = context.getRoom();
 
-        await modify.getCreator().finish(messageBuilder);
+        // Create direct message to the sender
+        const messageBuilder = modify.getCreator().startMessage()
+            .setRoom(room)
+            .setText(message)
+            .setSender(sender)
+            .setUsernameAlias('Workflow Bot')
+            .setEmojiAvatar(':gear:');
+
+        // Create the message
+        await modify.getNotifier().notifyUser(sender, messageBuilder.getMessage());
     }
 } 

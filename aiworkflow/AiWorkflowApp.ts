@@ -78,6 +78,7 @@ export class AiWorkflowApp extends App implements IPostMessageSent {
         
         for (const workflow of matchingWorkflows) {
             try {
+                console.log(`Executing workflow ${workflow.id} for message: ${text}`);
                 await actionExecutor.executeActions(workflow.actions, message, sender, room);
             } catch (error) {
                 console.error(`Error executing workflow ${workflow.id}: ${error}`);
@@ -91,14 +92,17 @@ export class AiWorkflowApp extends App implements IPostMessageSent {
 
         for (const workflow of workflows) {
             if (!workflow.enabled) {
+                console.log(`Workflow ${workflow.id} is disabled`);
                 continue;
             }
 
             if (workflow.trigger.type !== WorkflowTriggerType.Message) {
+                console.log(`Workflow ${workflow.id} is not a message trigger`);
                 continue;
             }
 
             if (this.matchesTrigger(workflow.trigger, message, sender, room)) {
+                console.log(`Workflow ${workflow.id} matches trigger`);
                 matchingWorkflows.push(workflow);
             }
         }
@@ -115,6 +119,7 @@ export class AiWorkflowApp extends App implements IPostMessageSent {
             const triggerRoom = trigger.room.startsWith('#') ? trigger.room.substring(1) : trigger.room;
             
             if (room.id !== triggerRoom && roomName !== triggerRoom) {
+                console.log(`Room mismatch: ${roomName} != ${triggerRoom}`);
                 return false;
             }
         }
@@ -125,16 +130,19 @@ export class AiWorkflowApp extends App implements IPostMessageSent {
             const triggerUser = trigger.user.startsWith('@') ? trigger.user.substring(1) : trigger.user;
             
             if (sender.id !== triggerUser && username !== triggerUser) {
+                console.log(`User mismatch: ${username} != ${triggerUser}`);
                 return false;
             }
         }
 
         // Check message content conditions
         if (trigger.contains && !text.includes(trigger.contains)) {
+            console.log(`Text does not contain: ${trigger.contains}`);
             return false;
         }
 
         if (trigger.startsWith && !text.startsWith(trigger.startsWith)) {
+            console.log(`Text does not start with: ${trigger.startsWith}`);
             return false;
         }
 
@@ -142,6 +150,7 @@ export class AiWorkflowApp extends App implements IPostMessageSent {
             try {
                 const regex = new RegExp(trigger.regex);
                 if (!regex.test(text)) {
+                    console.log(`Text does not match regex: ${trigger.regex}`);
                     return false;
                 }
             } catch (error) {
@@ -150,6 +159,7 @@ export class AiWorkflowApp extends App implements IPostMessageSent {
             }
         }
 
+        console.log(`All trigger conditions matched`);
         return true;
     }
 }

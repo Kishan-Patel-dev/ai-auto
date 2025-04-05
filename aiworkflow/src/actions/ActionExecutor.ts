@@ -41,63 +41,83 @@ export class ActionExecutor {
 
     private async executeDM(action: IWorkflowAction, message: IMessage, sender: IUser): Promise<void> {
         if (!action.target || !action.text) {
-            throw new Error('DM action requires both target and text');
+            console.error('DM action missing required fields');
+            return;
         }
 
-        const targetUser = await this.getUserByUsername(action.target);
-        if (!targetUser) {
-            throw new Error(`Target user not found: ${action.target}`);
+        try {
+            const targetUser = await this.getUserByUsername(action.target);
+            if (!targetUser) {
+                console.error(`Target user not found: ${action.target}`);
+                return;
+            }
+
+            const roomBuilder = this.modify.getCreator().startRoom();
+            roomBuilder.setType(RoomType.DIRECT_MESSAGE);
+            roomBuilder.setCreator(sender);
+            roomBuilder.setMembersToBeAddedByUsernames([targetUser.username]);
+            
+            const roomId = await this.modify.getCreator().finish(roomBuilder);
+            const room = await this.read.getRoomReader().getById(roomId);
+            
+            if (!room) {
+                console.error(`Failed to create DM room with ${targetUser.username}`);
+                return;
+            }
+
+            const messageBuilder = this.modify.getCreator().startMessage()
+                .setRoom(room)
+                .setSender(sender)
+                .setText(action.text);
+
+            await this.modify.getCreator().finish(messageBuilder);
+        } catch (error) {
+            console.error('Error executing DM action:', error);
         }
-
-        const roomBuilder = this.modify.getCreator().startRoom();
-        roomBuilder.setType(RoomType.DIRECT_MESSAGE);
-        roomBuilder.setCreator(sender);
-        roomBuilder.setMembersToBeAddedByUsernames([targetUser.username]);
-        
-        const roomId = await this.modify.getCreator().finish(roomBuilder);
-        const room = await this.read.getRoomReader().getById(roomId);
-        
-        if (!room) {
-            throw new Error(`Failed to create DM room with ${targetUser.username}`);
-        }
-
-        const messageBuilder = this.modify.getCreator().startMessage()
-            .setRoom(room)
-            .setSender(sender)
-            .setText(action.text);
-
-        await this.modify.getCreator().finish(messageBuilder);
     }
 
     private async executeDeleteMessage(message: IMessage): Promise<void> {
-        await this.modify.getNotifier().notifyUser(message.sender, message);
+        try {
+            await this.modify.getNotifier().notifyUser(message.sender, message);
+        } catch (error) {
+            console.error('Error executing delete message action:', error);
+        }
     }
 
     private async executePostMessage(action: IWorkflowAction, message: IMessage, sender: IUser): Promise<void> {
         if (!action.target || !action.text) {
-            throw new Error('Post message action requires both target and text');
+            console.error('Post message action missing required fields');
+            return;
         }
 
         let targetRoom: IRoom | undefined;
 
-        // Check if target is a room name (starting with #)
-        if (action.target.startsWith('#')) {
-            const roomName = action.target.substring(1);
-            targetRoom = await this.getRoomByName(roomName);
-        } else {
-            targetRoom = await this.getRoomById(action.target);
+        try {
+            // Check if target is a room name (starting with #)
+            if (action.target.startsWith('#')) {
+                const roomName = action.target.substring(1);
+                targetRoom = await this.getRoomByName(roomName);
+            } else if (action.target === 'channel') {
+                // If target is 'channel', use the same room as the trigger
+                targetRoom = message.room;
+            } else {
+                targetRoom = await this.getRoomById(action.target);
+            }
+
+            if (!targetRoom) {
+                console.error(`Target room not found: ${action.target}`);
+                return;
+            }
+
+            const messageBuilder = this.modify.getCreator().startMessage()
+                .setRoom(targetRoom)
+                .setSender(sender)
+                .setText(action.text);
+
+            await this.modify.getCreator().finish(messageBuilder);
+        } catch (error) {
+            console.error('Error executing post message action:', error);
         }
-
-        if (!targetRoom) {
-            throw new Error(`Target room not found: ${action.target}`);
-        }
-
-        const messageBuilder = this.modify.getCreator().startMessage()
-            .setRoom(targetRoom)
-            .setSender(sender)
-            .setText(action.text);
-
-        await this.modify.getCreator().finish(messageBuilder);
     }
 
     private async getUserByUsername(username: string): Promise<IUser | undefined> {
