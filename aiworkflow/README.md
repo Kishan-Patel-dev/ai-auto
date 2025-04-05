@@ -207,6 +207,209 @@ aiworkflow/
 - @rocket.chat/icons: ^0.38.0
 - TypeScript: ^5.6.2
 
+## 🔧 Technical Implementation Details
+
+### 1. Core Architecture
+```typescript
+// Main App Class Structure
+class AiWorkflowApp extends App implements IPostMessageSent {
+    // Message monitoring system
+    public async executePostMessageSent(
+        message: IMessage,
+        read: IRead,
+        http: IHttp,
+        persistence: IPersistence,
+        modify: IModify
+    ): Promise<void>
+
+    // Workflow matching system
+    private findMatchingWorkflows(
+        workflows: Array<IWorkflow>, 
+        message: IMessage, 
+        sender: IUser, 
+        room: IRoom
+    ): Array<IWorkflow>
+}
+```
+
+### 2. Data Models
+```typescript
+// Workflow Model
+interface IWorkflow {
+    id: string;
+    enabled: boolean;
+    trigger: {
+        type: 'message' | 'mention';
+        room?: string;
+        user?: string;
+        contains?: string;
+        regex?: string;
+    };
+    actions: Array<{
+        type: 'message' | 'dm' | 'delete';
+        content?: string;
+        target?: string;
+    }>;
+}
+
+// Natural Language Parser Models
+interface INLCommand {
+    rawInput: string;
+    trigger: ITrigger;
+    steps: IReasoningStep[];
+    actions: IAction[];
+}
+```
+
+### 3. LLM Integration
+```typescript
+// Prompt System
+const WORKFLOW_PROMPTS = {
+    PARSE_COMMAND: `Parse English commands into structured workflow...`,
+    VALIDATE_WORKFLOW: `Validate workflow for potential issues...`,
+    SAFETY_CHECK: `Analyze actions for safety concerns...`
+}
+
+// LLM Interface
+interface ILLMService {
+    parseCommand(input: string): Promise<INLCommand>;
+    validateWorkflow(workflow: IWorkflow): Promise<boolean>;
+    checkSafety(actions: IAction[]): Promise<SafetyReport>;
+}
+```
+
+### 4. Storage System
+```typescript
+// Persistence Layer
+class WorkflowStorage {
+    constructor(
+        private readonly persistence: IPersistence,
+        private readonly reader: IPersistenceRead
+    ) {}
+
+    async create(workflow: IWorkflow): Promise<void>
+    async getAll(): Promise<Array<IWorkflow>>
+    async update(id: string, workflow: IWorkflow): Promise<void>
+    async delete(id: string): Promise<void>
+}
+```
+
+### 5. Action System
+```typescript
+// Action Executor
+class ActionExecutor {
+    constructor(
+        private readonly read: IRead,
+        private readonly modify: IModify,
+        private readonly http: IHttp,
+        private readonly persistence: IPersistence
+    ) {}
+
+    async executeActions(
+        actions: IAction[],
+        context: IExecutionContext
+    ): Promise<void>
+}
+```
+
+### 6. Safety Implementation
+```typescript
+// Safety Checks
+interface ISafetyCheck {
+    validatePermissions(user: IUser, action: IAction): Promise<boolean>;
+    checkRateLimits(user: IUser): Promise<boolean>;
+    validateContent(content: string): Promise<ValidationResult>;
+}
+
+// Error Handling
+class WorkflowError extends Error {
+    constructor(
+        public code: ErrorCode,
+        public details: any,
+        message: string
+    ) {
+        super(message);
+    }
+}
+```
+
+### 7. Project Dependencies
+```json
+{
+    "dependencies": {
+        "@rocket.chat/apps-engine": "^1.44.0",
+        "@rocket.chat/ui-kit": "^0.36.1",
+        "@rocket.chat/icons": "^0.38.0"
+    },
+    "devDependencies": {
+        "typescript": "^5.6.2",
+        "@types/node": "14.14.6"
+    }
+}
+```
+
+### 8. Required Permissions
+```json
+{
+    "permissions": [
+        "message.read",
+        "message.write",
+        "room.read",
+        "user.read",
+        "slashcommand",
+        "networking",
+        "persistence"
+    ]
+}
+```
+
+### 9. Project Structure
+```
+aiworkflow/
+├── src/
+│   ├── actions/      # Action execution system
+│   ├── commands/     # Slash command handlers
+│   ├── constants/    # Prompt system
+│   ├── handlers/     # Event handlers
+│   ├── models/       # Data models & interfaces
+│   ├── parsers/      # Command parsing
+│   ├── storage/      # Persistence layer
+│   └── config/       # LLM configuration
+├── tests/            # Test suites
+└── docs/            # Documentation
+```
+
+### 10. Implementation Approach
+1. **Message Monitoring**
+   - Event-driven architecture using Rocket.Chat's Apps Engine
+   - Real-time message processing and pattern matching
+   - Efficient workflow matching algorithm
+
+2. **Natural Language Processing**
+   - Structured prompt system for command parsing
+   - Multi-step reasoning pipeline
+   - Entity extraction and validation
+
+3. **Action Execution**
+   - Modular action system
+   - Asynchronous execution
+   - Error handling and rollback
+
+4. **Safety Features**
+   - Permission-based access control
+   - Content validation
+   - Rate limiting
+   - Error recovery
+
+### 11. Testing Strategy
+```typescript
+describe('Workflow System', () => {
+    it('should parse natural language commands')
+    it('should validate workflow safety')
+    it('should execute actions in order')
+    it('should handle errors gracefully')
+})
+```
 
 ## 🎯 Example Use Cases
 
@@ -312,3 +515,4 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 - [X](https://x.com/KishanPatel_dev)
 - [Linkedin](https://www.linkedin.com/in/kishan-patel-dev/)
 - [Gmail](kishan.patel.tech.dev@gmail.com)
+
