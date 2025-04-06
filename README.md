@@ -9,7 +9,11 @@ A Rocket.Chat app that leverages LLMs for natural language workflow automation, 
 3. Enable multi-step reasoning for complex workflows
 4. Ensure robust safety mechanisms
 
-## 🚀 Features Implemented
+
+## PoC Working Demo
+<iframe width="560" height="315" src="https://www.youtube.com/embed/6FxSY__cU_Y?si=f39t85RY3elGfNoQ" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+
+## 🚀 Features Implemented in PoC
 
 ### 1. Core Message Monitoring
 - ✅ Message event handling system
