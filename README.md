@@ -11,7 +11,7 @@ A Rocket.Chat app that leverages LLMs for natural language workflow automation, 
 
 
 ## PoC Working Demo
-[![AI Chat Workflow Automation with multi-step reasoning](https://img.youtube.com/vi/6FxSY__cU_Y&ab_channel=KishanPatel/maxresdefault.jpg)](https://www.youtube.com/watch?v=6FxSY__cU_Y&ab_channel=KishanPatel)
+[![AI Chat Workflow Automation with multi-step reasoning](https://img.youtube.com/vi/6FxSY__cU_Y/maxresdefault.jpg)](https://www.youtube.com/watch?v=6FxSY__cU_Y&ab_channel=KishanPatel)
 
 ## 🚀 Features Implemented in PoC
 
